@@ -3,9 +3,12 @@
 import 'package:flutter/material.dart';
 import './constants.dart';
 import './pulse_heart.dart';
+import './services/api_client.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final String profileId;
+
+  const DashboardScreen({super.key, required this.profileId});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +31,7 @@ class DashboardScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceBlue,
                   borderRadius: BorderRadius.circular(30),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
                 ),
                 child: // Inside the Heart Rate Card in dashboard.dart
                   Column(
@@ -46,7 +49,27 @@ class DashboardScreen extends StatelessWidget {
               
               // Emergency AI Button
               ElevatedButton.icon(
-                onPressed: () {}, // Navigate to AI Chat
+                onPressed: () async {
+                  try {
+                    await ApiClient().sendCheckIn(
+                      profileId: profileId,
+                      heartRate: 72,
+                      moodScore: 7,
+                      anxietyLevel: 5,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Check-in saved')),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
                 icon: Icon(Icons.psychology, color: Colors.white),
                 label: Text("Talk to Assistant", style: TextStyle(color: Colors.white, fontSize: 18)),
                 style: ElevatedButton.styleFrom(

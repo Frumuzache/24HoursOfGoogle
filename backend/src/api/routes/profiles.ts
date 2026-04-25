@@ -25,13 +25,27 @@ profilesRouter.post("/profiles", async (req, res) => {
 
   const payload = payloadResult.data;
 
+  // Generate UUID-like ID in TypeScript
+  const generateId = () => {
+    return [
+      Math.random().toString(16).slice(2, 10),
+      Math.random().toString(16).slice(2, 6),
+      Math.random().toString(16).slice(2, 6),
+      Math.random().toString(16).slice(2, 6),
+      Math.random().toString(16).slice(2, 14),
+    ].join('-');
+  };
+
+  const profileId = generateId();
+
   const insertResult = db.prepare(
     `INSERT INTO user_profiles (
-      display_name, age, disorders, calming_strategies, favorite_foods, hobbies,
+      id, display_name, age, disorders, calming_strategies, favorite_foods, hobbies,
       medications, emergency_contact_name, emergency_contact_phone
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
+    profileId,
     payload.displayName,
     payload.age ?? null,
     JSON.stringify(payload.disorders),
@@ -42,8 +56,6 @@ profilesRouter.post("/profiles", async (req, res) => {
     payload.emergencyContactName ?? null,
     payload.emergencyContactPhone ?? null,
   );
-
-  const profileId = Number(insertResult.lastInsertRowid);
 
   const row = db
     .prepare(
@@ -70,10 +82,10 @@ profilesRouter.post("/profiles", async (req, res) => {
 });
 
 profilesRouter.get("/profiles/:id", async (req, res) => {
-  const idResult = z.coerce.number().int().positive().safeParse(req.params.id);
+  const idResult = z.string().min(1).safeParse(req.params.id);
 
   if (!idResult.success) {
-    return res.status(400).json({ error: "Profile id must be a positive integer" });
+    return res.status(400).json({ error: "Profile id must be a valid string" });
   }
 
   const id = idResult.data;
@@ -98,6 +110,9 @@ profilesRouter.get("/profiles/:id", async (req, res) => {
     calming_strategies: JSON.parse(String(row.calming_strategies ?? "[]")),
     favorite_foods: JSON.parse(String(row.favorite_foods ?? "[]")),
     hobbies: JSON.parse(String(row.hobbies ?? "[]")),
+    medications: JSON.parse(String(row.medications ?? "[]")),
+  });
+});
     medications: JSON.parse(String(row.medications ?? "[]")),
   });
 });
