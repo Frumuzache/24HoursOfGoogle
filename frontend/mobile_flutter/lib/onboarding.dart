@@ -119,9 +119,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               const SizedBox(height: 20),
               _buildInputCard("Favorite Foods", "e.g. Pizza, Sushi (comma-separated)", Icons.food_bank, _favoriteFoodsController),
               const SizedBox(height: 20),
-              _buildInputCard("Hobbies", "e.g. Reading, Gaming (comma-separated)", Icons.hobby, _hobbiesController),
-
-              const SizedBox(height: 50),
               
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitProfile,
