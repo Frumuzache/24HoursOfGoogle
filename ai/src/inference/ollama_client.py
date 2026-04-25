@@ -27,6 +27,26 @@ class OllamaClient:
             ]
         )
 
+    def chat_with_history(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        history: list[dict[str, str]],
+    ) -> str:
+        """Send message with conversation history for context."""
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history
+        for msg in history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            messages.append({"role": role, "content": content})
+        
+        # Add current user message
+        messages.append({"role": "user", "content": user_prompt})
+        
+        return self.chat_messages(messages)
+
     def chat_messages(self, messages: Sequence[dict[str, str]]) -> str:
         endpoint = f"{self._config.base_url.rstrip('/')}/api/chat"
         payload = {

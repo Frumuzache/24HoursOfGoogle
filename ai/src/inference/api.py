@@ -23,6 +23,10 @@ class InferenceRequest(BaseModel):
     calming_methods: str = ""
     hobbies: str = ""
     nearby_safe_places: str = ""
+    conversation_history: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Previous conversation messages for context",
+    )
 
 
 class InferenceResponse(BaseModel):
@@ -49,6 +53,7 @@ def infer(payload: InferenceRequest) -> InferenceResponse:
             user_input=payload.input,
             template_name=payload.template_name,
             variables=variables,
+            conversation_history=payload.conversation_history,
         )
         return InferenceResponse(output=output)
     except FileNotFoundError as exc:

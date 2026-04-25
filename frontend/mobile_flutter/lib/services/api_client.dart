@@ -1,11 +1,20 @@
-import 'dart:convert';
+import 'dart:convert' as convert;
 import 'dart:io';
 
 class ApiClient {
-  // Backend API
-  static const String baseUrl = 'http://10.200.23.114:8080/api/v1';
-  // AI Service
-  static const String aiUrl = 'http://10.200.23.114:8000';
+  // Backend API (running in Docker)
+  static const String baseUrl = 'http://10.0.2.2:8080/api/v1';
+  // AI Service (running in Docker)
+  static const String aiUrl = 'http://10.0.2.2:8000';
+
+  // Conversation history for AI chat
+  final List<Map<String, String>> _chatHistory = [];
+
+  List<Map<String, String>> get chatHistory => List.unmodifiable(_chatHistory);
+
+  void clearHistory() {
+    _chatHistory.clear();
+  }
 
   Future<Map<String, dynamic>> _postJson(
     String uri,
@@ -17,12 +26,12 @@ class ApiClient {
 
     try {
       final client = HttpClient();
-      final request = await client.postUrl(Uri.parse(uri)).timeout(const Duration(seconds: 30));
+      final request = await client.postUrl(Uri.parse(uri)).timeout(const Duration(seconds: 60));
       request.headers.contentType = ContentType.json;
-      request.write(jsonEncode(payload));
+      request.write(convert.jsonEncode(payload));
 
-      final response = await request.close().timeout(const Duration(seconds: 30));
-      final body = await response.transform(utf8.decoder).join();
+      final response = await request.close().timeout(const Duration(seconds: 60));
+      final body = await response.transform(convert.utf8.decoder).join();
 
       print('📥 [API] Răspuns server ($operation): ${response.statusCode}');
       client.close();
@@ -31,7 +40,7 @@ class ApiClient {
         throw Exception('Status incorect: ${response.statusCode}. Body: $body');
       }
 
-      return jsonDecode(body) as Map<String, dynamic>;
+      return convert.jsonDecode(body) as Map<String, dynamic>;
     } catch (e) {
       print('❌ [API] Eroare la $operation: $e');
       throw Exception('Eroare conexiune: $e');
@@ -116,7 +125,7 @@ class ApiClient {
     );
   }
 
-  // Chat cu AI Assistant
+  // Chat cu AI Assistant - cu istoric
   Future<String> chatWithAi({
     required String message,
     String userName = '',
@@ -126,6 +135,7 @@ class ApiClient {
     String hobbies = '',
     String nearbySafePlaces = '',
     String templateName = 'default_prompt.txt',
+    List<Map<String, String>>? conversationHistory,
   }) async {
     final response = await _postJson(
       '$aiUrl/infer',
@@ -138,6 +148,7 @@ class ApiClient {
         'calming_methods': calmingMethods,
         'hobbies': hobbies,
         'nearby_safe_places': nearbySafePlaces,
+        'conversation_history': conversationHistory ?? _chatHistory,
       },
       200,
       'chat with AI',
