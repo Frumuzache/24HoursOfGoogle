@@ -30,6 +30,12 @@ From repository root:
 .venv\Scripts\python.exe -m pip install -r ai\requirements.txt
 ```
 
+Create a `.env` file in repository root and set your Google Places key:
+
+```bash
+GOOGLE_PLACES_API_KEY=your_google_places_api_key
+```
+
 Make sure Ollama is running locally and the model is available:
 
 ```bash
@@ -53,6 +59,9 @@ Server starts at `http://127.0.0.1:8000`.
 
 This starts an interactive conversation in the terminal using the same prompt template and the same Ollama model. The `--show-prompt` flag prints the rendered system prompt so you can confirm the placeholders are being filled.
 
+When prompted at startup, also provide your current latitude/longitude and preferred calming place type (for example: `park`, `library`, `cafe`).
+If the user asks for the nearest calming place, the terminal chat now queries Google Places API and injects the nearest result into the conversation context.
+
 ## Test endpoint
 
 ```bash
@@ -75,6 +84,8 @@ Set these optional environment variables before starting the server:
 - `OLLAMA_URL` (default: `http://127.0.0.1:11434`)
 - `OLLAMA_MODEL` (default: `gemma3:4b`)
 - `OLLAMA_TIMEOUT_SECONDS` (default: `120`)
+- `GOOGLE_PLACES_API_KEY` (required for nearest calming place lookup)
+- `PLACES_RADIUS_METERS` (default: `3000`)
 
 Example:
 
