@@ -1,0 +1,1 @@
+"""AI package for local inference, prompts, and training assets."""
