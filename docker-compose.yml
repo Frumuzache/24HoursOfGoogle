@@ -10,10 +10,8 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-      # Mapăm folderul database din ROOT în folderul /database din CONTAINER
-      - ./database:/database 
+      - ./database:/app/database # <--- O mapăm direct în interiorul aplicației
     environment:
       - PORT=8080
-      # Spunem aplicației să urce un nivel și să caute folderul database
-      - SQLITE_DB_PATH=../database/assets/health_app.db
+      - SQLITE_DB_PATH=./database/assets/health_app.db # <--- Cale simplă, relativă la rădăcina proiectului
     restart: always

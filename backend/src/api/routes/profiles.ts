@@ -113,6 +113,3 @@ profilesRouter.get("/profiles/:id", async (req, res) => {
     medications: JSON.parse(String(row.medications ?? "[]")),
   });
 });
-    medications: JSON.parse(String(row.medications ?? "[]")),
-  });
-});

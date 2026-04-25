@@ -1,8 +1,15 @@
 import Database from "better-sqlite3";
+import fs from "node:fs";
 import path from "node:path";
 import { env } from "./config";
 
-const dbFilePath = path.resolve(process.cwd(), env.SQLITE_DB_PATH);
+const backendRoot = path.resolve(__dirname, "../..");
+const dbFilePath = path.isAbsolute(env.SQLITE_DB_PATH)
+  ? env.SQLITE_DB_PATH
+  : path.resolve(backendRoot, env.SQLITE_DB_PATH);
+
+fs.mkdirSync(path.dirname(dbFilePath), { recursive: true });
+
 export const db = new Database(dbFilePath);
 db.pragma("foreign_keys = ON");
 
