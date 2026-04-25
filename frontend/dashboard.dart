@@ -28,7 +28,7 @@ class DashboardScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceBlue,
                   borderRadius: BorderRadius.circular(30),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
                 ),
                 child: // Inside the Heart Rate Card in dashboard.dart
                   Column(

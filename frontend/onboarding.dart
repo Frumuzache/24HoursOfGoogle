@@ -20,7 +20,7 @@ class OnboardingScreen extends StatelessWidget {
               Text("Safety Profile", style: TextStyle(color: AppColors.midnightText, fontSize: 36, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               Text("This helps the AI know how to support you during a panic attack.", 
-                style: TextStyle(color: AppColors.midnightText.withOpacity(0.7), fontSize: 16)),
+                style: TextStyle(color: AppColors.midnightText.withValues(alpha: 0.7), fontSize: 16)),
               const SizedBox(height: 40),
 
               _buildInputCard("Health Condition", "e.g. Anxiety, PTSD", Icons.psychology),
@@ -74,7 +74,7 @@ class OnboardingScreen extends StatelessWidget {
           TextField(
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: AppColors.midnightText.withOpacity(0.3)),
+              hintStyle: TextStyle(color: AppColors.midnightText.withValues(alpha: 0.3)),
               border: InputBorder.none,
             ),
           ),
