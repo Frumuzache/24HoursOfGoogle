@@ -34,7 +34,7 @@ async function start(): Promise<void> {
   initializeDatabase();
   await verifyDatabaseConnection();
 
-  app.listen(env.PORT, () => {
+  app.listen(env.PORT, "0.0.0.0", () => {
     console.log(`Backend listening on port ${env.PORT}`);
   });
 }
