@@ -10,46 +10,8 @@ const dbFilePath = path.isAbsolute(env.SQLITE_DB_PATH)
 
 fs.mkdirSync(path.dirname(dbFilePath), { recursive: true });
 
-function removeDatabaseArtifacts(): void {
-  for (const suffix of ["", "-wal", "-shm", "-journal"]) {
-    const filePath = `${dbFilePath}${suffix}`;
-
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to reset database file ${filePath}: ${message}`);
-    }
-  }
-}
-
-function openDatabase(): Database.Database {
-  const createConnection = (): Database.Database => {
-    const connection = new Database(dbFilePath);
-    connection.pragma("foreign_keys = ON");
-    connection.prepare("SELECT 1").get();
-    return connection;
-  };
-
-  try {
-    return createConnection();
-  } catch (error) {
-    const sqliteError = error as { code?: string; message?: string };
-    const message = String(sqliteError.message ?? error);
-
-    if (sqliteError.code !== "SQLITE_NOTADB" && !message.toLowerCase().includes("not a database")) {
-      throw error;
-    }
-
-    console.warn(`Database file at ${dbFilePath} is invalid. Resetting it.`);
-    removeDatabaseArtifacts();
-    return createConnection();
-  }
-}
-
-export const db = openDatabase();
+export const db = new Database(dbFilePath);
+db.pragma("foreign_keys = ON");
 
 function tableExists(tableName: string): boolean {
   const row = db
@@ -90,7 +52,7 @@ function createIntegerSchema(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL,
       password TEXT NOT NULL,
       username TEXT,
       created_at TEXT DEFAULT (datetime('now')) NOT NULL
