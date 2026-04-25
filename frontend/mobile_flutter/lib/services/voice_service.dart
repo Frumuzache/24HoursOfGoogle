@@ -40,9 +40,10 @@ class VoiceService {
     if (_isInitialized) return;
 
     await _flutterTts.awaitSpeakCompletion(true);
-    await _flutterTts.setSpeechRate(0.48);
+    await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+    await _flutterTts.setLanguage('en-US');
 
     _flutterTts.setStartHandler(() {
       state.value = VoiceInteractionState.speaking;
@@ -125,12 +126,12 @@ class VoiceService {
 
     await _speechToText.listen(
       onResult: _handleSpeechResult,
-      listenFor: const Duration(minutes: 1),
-      pauseFor: const Duration(seconds: 2),
+      listenFor: const Duration(minutes: 3),
+      pauseFor: const Duration(seconds: 5),
       listenOptions: SpeechListenOptions(
         partialResults: true,
-        cancelOnError: true,
-        listenMode: ListenMode.confirmation,
+        cancelOnError: false,
+        listenMode: ListenMode.dictation,
       ),
     );
   }
