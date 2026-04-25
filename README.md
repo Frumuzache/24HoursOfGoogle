@@ -13,6 +13,13 @@ The current Flutter app still exists at repository root (`lib/`, `android/`, `io
 
 ## Suggested Project Layout
 
+<<<<<<< HEAD
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
+
+-laaaa
+=======
 ```text
 .
 |-- frontend/
@@ -57,3 +64,4 @@ You can still run the existing app from repository root:
 flutter pub get
 flutter run
 ```
+>>>>>>> origin/main
