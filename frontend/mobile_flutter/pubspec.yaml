@@ -1,0 +1,18 @@
+name: mobile_flutter
+description: Custom mobile Flutter frontend for Safety Net app
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  geolocator: ^13.0.1
+  flutter_local_notifications: ^18.0.1
+
+flutter:
+  uses-material-design: true

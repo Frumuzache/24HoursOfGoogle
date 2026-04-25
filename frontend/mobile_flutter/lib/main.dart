@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'onboarding.dart'; // Importă fișierul tău
+import 'onboarding.dart'; // Fișierul tău original
+import 'login.dart'; // Noul import
 
 void main() {
   runApp(const MyApp());
@@ -13,8 +14,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Safety Net',
-      // Aici îi spui cu ce ecran să înceapă:
-      home: const OnboardingScreen(), 
+      // Schimbăm doar aici ca să pornească direct cu Login-ul
+      home: const LoginScreen(), 
     );
   }
 }
