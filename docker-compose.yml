@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      # Mapăm folderul database din ROOT în folderul /database din CONTAINER
+      - ./database:/database 
+    environment:
+      - PORT=8080
+      # Spunem aplicației să urce un nivel și să caute folderul database
+      - SQLITE_DB_PATH=../database/assets/health_app.db
+    restart: always
