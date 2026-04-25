@@ -2,30 +2,30 @@ import 'dart:convert';
 import 'dart:io';
 
 class ApiClient {
-  // Folosim 127.0.0.1 (localhost) pentru că vei rula comanda "adb reverse"
+  // Backend API
   static const String baseUrl = 'http://10.200.23.114:8080/api/v1';
+  // AI Service
+  static const String aiUrl = 'http://10.200.23.114:8000';
 
   Future<Map<String, dynamic>> _postJson(
-    String endpoint,
+    String uri,
     Map<String, dynamic> payload,
     int expectedStatus,
     String operation,
   ) async {
-    final uri = Uri.parse('$baseUrl$endpoint');
-    final client = HttpClient();
-
-    // Debug print ca să vezi în terminal exact unde pleacă datele
     print('🚀 [API] Trimit $operation la: $uri');
 
     try {
-      final request = await client.postUrl(uri).timeout(const Duration(seconds: 10));
+      final client = HttpClient();
+      final request = await client.postUrl(Uri.parse(uri)).timeout(const Duration(seconds: 30));
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(payload));
 
-      final response = await request.close().timeout(const Duration(seconds: 10));
+      final response = await request.close().timeout(const Duration(seconds: 30));
       final body = await response.transform(utf8.decoder).join();
 
       print('📥 [API] Răspuns server ($operation): ${response.statusCode}');
+      client.close();
 
       if (response.statusCode != expectedStatus) {
         throw Exception('Status incorect: ${response.statusCode}. Body: $body');
@@ -35,8 +35,6 @@ class ApiClient {
     } catch (e) {
       print('❌ [API] Eroare la $operation: $e');
       throw Exception('Eroare conexiune: $e');
-    } finally {
-      client.close(force: true);
     }
   }
 
@@ -50,7 +48,7 @@ class ApiClient {
     List<String> hobbies = const [],
   }) async {
     return _postJson(
-      '/profiles',
+      '$baseUrl/profiles',
       {
         'displayName': displayName,
         'disorders': disorders,
@@ -72,7 +70,7 @@ class ApiClient {
     int anxietyLevel = 5,
   }) async {
     return _postJson(
-      '/check-ins',
+      '$baseUrl/check-ins',
       {
         'profileId': profileId,
         'heartRate': heartRate,
@@ -83,6 +81,45 @@ class ApiClient {
       },
       201,
       'send check-in',
+    );
+  }
+
+  // Chat cu AI Assistant
+  Future<String> chatWithAi({
+    required String message,
+    String userName = '',
+    String userConditions = '',
+    String heartRate = '',
+    String calmingMethods = '',
+    String hobbies = '',
+    String nearbySafePlaces = '',
+    String templateName = 'default_prompt.txt',
+  }) async {
+    final response = await _postJson(
+      '$aiUrl/infer',
+      {
+        'input': message,
+        'template_name': templateName,
+        'user_name': userName,
+        'user_conditions': userConditions,
+        'heart_rate': heartRate,
+        'calming_methods': calmingMethods,
+        'hobbies': hobbies,
+        'nearby_safe_places': nearbySafePlaces,
+      },
+      200,
+      'chat with AI',
+    );
+    return response['output'] as String;
+  }
+
+  // Obține profil utilizator
+  Future<Map<String, dynamic>> getProfile(int profileId) async {
+    return _postJson(
+      '$baseUrl/profiles/$profileId',
+      {},
+      200,
+      'get profile',
     );
   }
 }

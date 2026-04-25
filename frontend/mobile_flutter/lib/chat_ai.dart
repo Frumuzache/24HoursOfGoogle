@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
+import 'services/api_client.dart';
 
 class ChatAiScreen extends StatefulWidget {
-  const ChatAiScreen({super.key});
+  final int profileId;
+
+  const ChatAiScreen({super.key, required this.profileId});
 
   @override
   State<ChatAiScreen> createState() => _ChatAiScreenState();
@@ -10,35 +13,87 @@ class ChatAiScreen extends StatefulWidget {
 
 class _ChatAiScreenState extends State<ChatAiScreen> {
   final TextEditingController _controller = TextEditingController();
-  
-  // Mock list of messages to show how it looks
-  final List<Map<String, dynamic>> _messages = [
-    {
-      "text": "Hello! I noticed your heart rate was a bit high. How are you feeling?",
-      "isAi": true
-    },
-  ];
+  final List<Map<String, dynamic>> _messages = [];
+  bool _isLoading = false;
+  Map<String, dynamic>? _profileData;
 
-  void _sendMessage() {
-    if (_controller.text.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+    _addWelcomeMessage();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _addWelcomeMessage() {
+    _messages.add({"text": "Hello! I'm your safety assistant. How are you feeling right now?", "isAi": true});
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await ApiClient().getProfile(widget.profileId);
+      if (mounted) {
+        setState(() {
+          _profileData = profile;
+        });
+      }
+    } catch (e) {
+      print('Failed to load profile: $e');
+    }
+  }
+
+  String _formatList(List<dynamic> list) {
+    if (list.isEmpty) return "None specified";
+    return list.map((e) => e.toString()).join(", ");
+  }
+
+  Future<void> _sendMessage() async {
+    if (_controller.text.isEmpty || _isLoading) return;
+
+    final userMessage = _controller.text;
+    _controller.clear();
 
     setState(() {
-      // 1. Add User Message
-      _messages.add({"text": _controller.text, "isAi": false});
-      
-      // 2. Mock AI Response (Your "Prompt" logic)
-      String userText = _controller.text.toLowerCase();
-      String aiResponse = "I'm listening. Tell me more about that.";
-
-      if (userText.contains("anxious") || userText.contains("panic")) {
-        aiResponse = "I'm here with you. Let's try to name 3 things you can see right now to ground yourself.";
-      } else if (userText.contains("medication") || userText.contains("pills")) {
-        aiResponse = "Checking your profile... Remember, your doctor suggested taking your meds with water. Have you done that today?";
-      }
-
-      _messages.add({"text": aiResponse, "isAi": true});
-      _controller.clear();
+      _messages.add({"text": userMessage, "isAi": false});
+      _isLoading = true;
     });
+
+    try {
+      final aiResponse = await ApiClient().chatWithAi(
+        message: userMessage,
+        userName: _profileData?['display_name'] ?? '',
+        userConditions: _formatList(_profileData?['disorders'] ?? []),
+        heartRate: '72',
+        calmingMethods: _formatList(_profileData?['calming_strategies'] ?? []),
+        hobbies: _formatList(_profileData?['hobbies'] ?? []),
+      );
+
+      if (mounted) {
+        setState(() {
+          _messages.add({"text": aiResponse, "isAi": true});
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages.add({
+            "text": "I'm here with you. Can you tell me what's happening?",
+            "isAi": true
+          });
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -63,6 +118,22 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
               },
             ),
           ),
+          if (_isLoading)
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.deepSerenity),
+                  ),
+                  SizedBox(width: 10),
+                  Text("Thinking...", style: TextStyle(color: AppColors.midnightText)),
+                ],
+              ),
+            ),
           _buildInputArea(),
         ],
       ),
@@ -102,12 +173,14 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
           Expanded(
             child: TextField(
               controller: _controller,
+              enabled: !_isLoading,
               decoration: InputDecoration(
                 hintText: "Type how you feel...",
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                 filled: true,
                 fillColor: AppColors.bgMist,
               ),
+              onSubmitted: (_) => _sendMessage(),
             ),
           ),
           SizedBox(width: 10),
@@ -115,7 +188,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
             backgroundColor: AppColors.midnightText,
             child: IconButton(
               icon: Icon(Icons.send, color: Colors.white),
-              onPressed: _sendMessage,
+              onPressed: _isLoading ? null : _sendMessage,
             ),
           )
         ],

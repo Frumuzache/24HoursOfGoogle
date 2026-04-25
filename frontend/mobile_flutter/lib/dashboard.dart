@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import './constants.dart';
 import './pulse_heart.dart';
 import './services/api_client.dart';
+import 'chat_ai.dart';
 
 class DashboardScreen extends StatelessWidget {
   final int profileId;
@@ -33,16 +34,14 @@ class DashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)],
                 ),
-                child: // Inside the Heart Rate Card in dashboard.dart
-                  Column(
-                    children: [
-                      // Pulse animation replaced the static icon
-                      PulseHeart(bpm: 72), 
-                      const SizedBox(height: 16),
-                      Text("72", style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: AppColors.midnightText)),
-                      Text("BPM", style: TextStyle(letterSpacing: 2, color: AppColors.forestQuiet)),
-                    ],
-                  ),
+                child: Column(
+                  children: [
+                    PulseHeart(bpm: 72), 
+                    const SizedBox(height: 16),
+                    Text("72", style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: AppColors.midnightText)),
+                    Text("BPM", style: TextStyle(letterSpacing: 2, color: AppColors.forestQuiet)),
+                  ],
+                ),
               ),
               
               Spacer(),
@@ -58,14 +57,20 @@ class DashboardScreen extends StatelessWidget {
                       anxietyLevel: 5,
                     );
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Check-in saved')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatAiScreen(profileId: profileId),
+                        ),
                       );
                     }
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatAiScreen(profileId: profileId),
+                        ),
                       );
                     }
                   }
