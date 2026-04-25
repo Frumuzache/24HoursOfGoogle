@@ -10,6 +10,8 @@ class ApiClient {
     List<String> disorders = const [],
     List<String> calmingStrategies = const [],
     List<String> medications = const [],
+    List<String> favoriteFoods = const [],
+    List<String> hobbies = const [],
   }) async {
     try {
       final response = await http.post(
@@ -20,8 +22,8 @@ class ApiClient {
           'disorders': disorders,
           'calmingStrategies': calmingStrategies,
           'medications': medications,
-          'favoriteFoods': [],
-          'hobbies': [],
+          'favoriteFoods': favoriteFoods,
+          'hobbies': hobbies,
         }),
       ).timeout(const Duration(seconds: 10));
       

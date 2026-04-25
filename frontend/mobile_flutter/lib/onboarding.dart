@@ -15,6 +15,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _disordersController = TextEditingController();
   final _calmingStrategiesController = TextEditingController();
   final _medicationsController = TextEditingController();
+  final _favoriteFoodsController = TextEditingController();
+  final _hobbiesController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -23,6 +25,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _disordersController.dispose();
     _calmingStrategiesController.dispose();
     _medicationsController.dispose();
+    _favoriteFoodsController.dispose();
+    _hobbiesController.dispose();
     super.dispose();
   }
 
@@ -50,6 +54,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             .where((s) => s.isNotEmpty)
             .toList(),
         medications: _medicationsController.text
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList(),
+        favoriteFoods: _favoriteFoodsController.text
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList(),
+        hobbies: _hobbiesController.text
             .split(',')
             .map((s) => s.trim())
             .where((s) => s.isNotEmpty)
@@ -102,7 +116,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _buildInputCard("What calms you?", "e.g. Lofi music, deep breaths (comma-separated)", Icons.self_improvement, _calmingStrategiesController),
               const SizedBox(height: 20),
               _buildInputCard("Medications", "e.g. Sertraline - 8:00 AM (comma-separated)", Icons.medication, _medicationsController),
-              
+              const SizedBox(height: 20),
+              _buildInputCard("Favorite Foods", "e.g. Pizza, Sushi (comma-separated)", Icons.food_bank, _favoriteFoodsController),
+              const SizedBox(height: 20),
+              _buildInputCard("Hobbies", "e.g. Reading, Gaming (comma-separated)", Icons.hobby, _hobbiesController),
+
               const SizedBox(height: 50),
               
               ElevatedButton(
