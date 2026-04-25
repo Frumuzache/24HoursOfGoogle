@@ -12,7 +12,11 @@ class InferenceService:
     """Coordinates prompt construction and local Ollama generation."""
 
     def __init__(self, project_root: Path) -> None:
+        # In container, project_root resolves to /, so look relative to app directory
         prompts_dir = project_root / "ai" / "prompts"
+        if not prompts_dir.exists():
+            # Fallback: look relative to this service file (app/prompts in container)
+            prompts_dir = Path(__file__).resolve().parents[2] / "prompts"
         self._prompt_manager = PromptManager(prompts_dir=prompts_dir)
         self._client = OllamaClient(
             OllamaClientConfig(

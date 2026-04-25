@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login.dart';
+import 'package:mobile_flutter/onboarding.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,8 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Safety Net',
-      // Schimbăm doar aici ca să pornească direct cu Login-ul
-      home: const LoginScreen(), 
+      home: const OnboardingScreen(),
     );
   }
 }
