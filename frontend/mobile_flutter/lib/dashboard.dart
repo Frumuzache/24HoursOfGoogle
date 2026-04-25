@@ -6,6 +6,8 @@ import './pulse_heart.dart';
 import './services/api_client.dart';
 import 'chat_ai.dart';
 import 'emergency_contacts.dart'; 
+import 'vitals_service.dart'; // Asigură-te că aceasta este calea corectă
+import 'watch_ui.dart'; // Importă și ecranul de ceas pe care îl creăm
 
 class DashboardScreen extends StatelessWidget {
   final int profileId;
@@ -108,7 +110,29 @@ class DashboardScreen extends StatelessWidget {
               
               const Spacer(),
 
-              // Quick SOS Button
+              // BUTONUL PENTRU DESCHIDERE INTERFAȚĂ CEAS
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WatchScreen(profileId: profileId),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.watch, color: Colors.white),
+                label: const Text("Open Watch Interface", style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.midnightText.withOpacity(0.6),
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+              ),
+
+              const SizedBox(height: 12), // Spațiu între butonul nou și cel de SOS
+
+              // Quick SOS Button (codul tău existent...)
+              
               GestureDetector(
                 onLongPress: () => _triggerSOS(context),
                 child: Container(

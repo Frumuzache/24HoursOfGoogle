@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "0.0.0.0:8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./database:/app/database 
+    environment:
+      - PORT=8080
+      - SQLITE_DB_PATH=/app/database/assets/health_app.db 
+    restart: always
