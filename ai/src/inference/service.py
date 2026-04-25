@@ -31,10 +31,20 @@ class InferenceService:
         user_input: str,
         template_name: str = "default_prompt.txt",
         variables: Mapping[str, str] | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> str:
         system_prompt = self._prompt_manager.build(
             user_input=user_input,
             template_name=template_name,
             variables=variables,
         )
-        return self._client.chat(system_prompt=system_prompt, user_prompt=user_input)
+        
+        # Include conversation history for context
+        if conversation_history:
+            return self._client.chat_with_history(
+                system_prompt=system_prompt,
+                user_prompt=user_input,
+                history=conversation_history,
+            )
+        else:
+            return self._client.chat(system_prompt=system_prompt, user_prompt=user_input)

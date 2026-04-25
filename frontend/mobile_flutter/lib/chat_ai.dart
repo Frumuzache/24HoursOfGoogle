@@ -13,6 +13,7 @@ class ChatAiScreen extends StatefulWidget {
 
 class _ChatAiScreenState extends State<ChatAiScreen> {
   final TextEditingController _controller = TextEditingController();
+  final ApiClient _apiClient = ApiClient();
   final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   Map<String, dynamic>? _profileData;
@@ -31,12 +32,15 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
   }
 
   void _addWelcomeMessage() {
-    _messages.add({"text": "Hello! I'm your safety assistant. How are you feeling right now?", "isAi": true});
+    _messages.add({
+      "text": "Hello! I'm your safety assistant. How are you feeling right now?",
+      "isAi": true
+    });
   }
 
   Future<void> _loadProfile() async {
     try {
-      final profile = await ApiClient().getProfile(widget.profileId);
+      final profile = await _apiClient.getProfile(widget.profileId);
       if (mounted) {
         setState(() {
           _profileData = profile;
@@ -64,13 +68,24 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
     });
 
     try {
-      final aiResponse = await ApiClient().chatWithAi(
+      // Build conversation history from messages
+      final history = <Map<String, String>>[];
+      for (final msg in _messages) {
+        if (msg["isAi"] == true) {
+          history.add({"role": "assistant", "content": msg["text"]});
+        } else {
+          history.add({"role": "user", "content": msg["text"]});
+        }
+      }
+
+      final aiResponse = await _apiClient.chatWithAi(
         message: userMessage,
         userName: _profileData?['display_name'] ?? '',
         userConditions: _formatList(_profileData?['disorders'] ?? []),
         heartRate: '72',
         calmingMethods: _formatList(_profileData?['calming_strategies'] ?? []),
         hobbies: _formatList(_profileData?['hobbies'] ?? []),
+        conversationHistory: history,
       );
 
       if (mounted) {
@@ -105,6 +120,18 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.midnightText),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: AppColors.midnightText),
+            onPressed: () {
+              setState(() {
+                _messages.clear();
+                _addWelcomeMessage();
+              });
+            },
+            tooltip: "Clear conversation",
+          ),
+        ],
       ),
       body: Column(
         children: [
