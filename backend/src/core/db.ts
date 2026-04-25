@@ -21,6 +21,19 @@ function tableExists(tableName: string): boolean {
   return Boolean(row);
 }
 
+function ensureUsersSchema(): void {
+  if (!tableExists("users")) {
+    return;
+  }
+
+  const columns = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+  const hasUsername = columns.some((column) => column.name === "username");
+
+  if (!hasUsername) {
+    db.exec("ALTER TABLE users ADD COLUMN username TEXT;");
+  }
+}
+
 function isLegacyTextIdSchema(): boolean {
   if (!tableExists("user_profiles")) {
     return false;
@@ -37,6 +50,14 @@ function isLegacyTextIdSchema(): boolean {
 
 function createIntegerSchema(): void {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      password TEXT NOT NULL,
+      username TEXT,
+      created_at TEXT DEFAULT (datetime('now')) NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS user_profiles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       display_name TEXT NOT NULL,
@@ -262,6 +283,8 @@ function migrateLegacyTextIdSchema(): void {
 }
 
 export function initializeDatabase(): void {
+  ensureUsersSchema();
+
   if (isLegacyTextIdSchema()) {
     migrateLegacyTextIdSchema();
     return;

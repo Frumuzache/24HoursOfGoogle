@@ -62,6 +62,38 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
+    return _postJson(
+      '$baseUrl/auth/register',
+      {
+        'email': email,
+        'password': password,
+        'displayName': displayName,
+      },
+      201,
+      'register',
+    );
+  }
+
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    return _postJson(
+      '$baseUrl/auth/login',
+      {
+        'email': email,
+        'password': password,
+      },
+      200,
+      'login',
+    );
+  }
+
   // Trimitere Check-in (Mood/Heart Rate)
   Future<Map<String, dynamic>> sendCheckIn({
     required int profileId,

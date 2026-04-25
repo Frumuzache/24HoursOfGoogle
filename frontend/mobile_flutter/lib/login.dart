@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'register.dart'; // Importăm ecranul de înregistrare
 import 'dashboard.dart'; // Importăm dashboard-ul
+import 'onboarding.dart';
+import 'services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,18 +22,38 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Aici va fi apelul tău real către backend
-      await Future.delayed(const Duration(seconds: 2)); // Simulare timp de așteptare
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-        
-        // Dacă utilizatorul se loghează, presupunem că are deja profilul creat.
-        // Îl trimitem direct în dashboard (punem un profileId temporar).
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen(profileId: 1)), 
+      try {
+        final response = await ApiClient().login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
+
+        final user = response['user'];
+        final profileId = user is Map<String, dynamic> ? user['profileId'] : null;
+
+        if (mounted) {
+          if (profileId is num) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => DashboardScreen(profileId: profileId.toInt())),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Eroare la autentificare: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }

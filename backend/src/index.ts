@@ -6,6 +6,7 @@ import { healthRouter } from "./api/routes/health";
 import { profilesRouter } from "./api/routes/profiles";
 import { checkinsRouter } from "./api/routes/checkins";
 import { vitalsRouter } from "./api/routes/vitals";
+import authRoutes from "./api/routes/auth";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/v1", healthRouter);
 app.use("/api/v1", profilesRouter);
 app.use("/api/v1", checkinsRouter);
 app.use("/api/v1", vitalsRouter);
+app.use("/api/v1/auth", authRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Unhandled API error", err);

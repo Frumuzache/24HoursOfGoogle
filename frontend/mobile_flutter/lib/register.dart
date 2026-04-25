@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'onboarding.dart'; // Importăm Onboarding-ul
+import 'services/api_client.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,17 +21,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Aici va fi apelul tău real către backend (ex: Firebase auth)
-      await Future.delayed(const Duration(seconds: 2)); // Simulare timp de așteptare
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-        
-        // Trimitem noul utilizator să își completeze profilul de siguranță!
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+      try {
+        await ApiClient().register(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          displayName: _nameController.text.trim(),
         );
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Eroare la creare cont: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
