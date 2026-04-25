@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'onboarding.dart';
+import 'register.dart';
 import 'dashboard.dart';
 import 'constants.dart';
 import 'services/api_client.dart';
@@ -43,9 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Eroare: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Eroare: $e')));
         }
       } finally {
         if (mounted) {
@@ -70,27 +71,41 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 48),
-                  Icon(Icons.shield_outlined, size: 80, color: AppColors.deepSerenity),
+                  Icon(
+                    Icons.shield_outlined,
+                    size: 80,
+                    color: AppColors.deepSerenity,
+                  ),
                   const SizedBox(height: 32),
                   Text(
                     'Safety Net',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.midnightText),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.midnightText,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Spatiul tau sigur.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: AppColors.midnightText.withValues(alpha: 0.6)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.midnightText.withValues(alpha: 0.6),
+                    ),
                   ),
                   const SizedBox(height: 48),
-                  
+
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.surfaceBlue, width: 2),
+                      border: Border.all(
+                        color: AppColors.surfaceBlue,
+                        width: 2,
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -99,16 +114,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: TextStyle(color: AppColors.midnightText),
-                            prefixIcon: Icon(Icons.email_outlined, color: AppColors.deepSerenity),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            labelStyle: TextStyle(
+                              color: AppColors.midnightText,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: AppColors.deepSerenity,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.deepSerenity, width: 2),
+                              borderSide: BorderSide(
+                                color: AppColors.deepSerenity,
+                                width: 2,
+                              ),
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Introdu email-ul';
+                            if (value == null || value.isEmpty)
+                              return 'Introdu email-ul';
                             if (!value.contains('@')) return 'Email invalid';
                             return null;
                           },
@@ -120,20 +146,38 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
                             labelText: 'Parola',
-                            labelStyle: TextStyle(color: AppColors.midnightText),
-                            prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepSerenity),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            labelStyle: TextStyle(
+                              color: AppColors.midnightText,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: AppColors.deepSerenity,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.deepSerenity, width: 2),
+                              borderSide: BorderSide(
+                                color: AppColors.deepSerenity,
+                                width: 2,
+                              ),
                             ),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: AppColors.deepSerenity),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: AppColors.deepSerenity,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Introdu parola';
+                            if (value == null || value.isEmpty)
+                              return 'Introdu parola';
                             if (value.length < 6) return 'Minim 6 caractere';
                             return null;
                           },
@@ -141,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
 
                   ElevatedButton(
@@ -149,11 +193,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.midnightText,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Autentificare', style: TextStyle(fontSize: 18, color: Colors.white)),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Autentificare',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
                   ),
                   const SizedBox(height: 16),
 
@@ -161,11 +217,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterScreen(),
+                        ),
                       );
                     },
                     child: Text(
-                      'Nu ai cont? Inregistreaza-te aici.',
+                      'Nu ai cont? Creează cont aici.',
                       style: TextStyle(color: AppColors.deepSerenity),
                     ),
                   ),

@@ -10,8 +10,10 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-      - ./database:/app/database # <--- O mapăm direct în interiorul aplicației
+      # Modificăm aici să bată cu structura ta de fișiere
+      - ./database:/app/database 
     environment:
       - PORT=8080
-      - SQLITE_DB_PATH=./database/assets/health_app.db # <--- Cale simplă, relativă la rădăcina proiectului
+      # ADAUGĂ /app ÎN FAȚĂ AICI:
+      - SQLITE_DB_PATH=/app/database/assets/health_app.db 
     restart: always

@@ -2,10 +2,13 @@ import 'dart:convert' as convert;
 import 'dart:io';
 
 class ApiClient {
+  // Use a LAN host by default for real devices. Override with --dart-define=API_HOST=... when needed.
+  static const String _apiHost = String.fromEnvironment('API_HOST', defaultValue: '10.200.23.114');
+
   // Backend API (running in Docker)
-  static const String baseUrl = 'http://10.0.2.2:8080/api/v1';
+  static String get baseUrl => 'http://$_apiHost:8080/api/v1';
   // AI Service (running in Docker)
-  static const String aiUrl = 'http://10.0.2.2:8000';
+  static String get aiUrl => 'http://$_apiHost:8000';
 
   // Conversation history for AI chat
   final List<Map<String, String>> _chatHistory = [];
