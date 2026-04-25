@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:3000/api/v1';
+  static const String baseUrl = 'http://172.20.10.3:8080/api/v1';
 
   Future<Map<String, dynamic>> _postJson(
     String endpoint,
