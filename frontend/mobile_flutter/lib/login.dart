@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'register.dart'; // Importăm ecranul de înregistrare
-import 'dashboard.dart'; // Importăm dashboard-ul
 import 'onboarding.dart';
+import 'dashboard.dart';
+import 'constants.dart';
 import 'services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,26 +28,23 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
 
-        final user = response['user'];
-        final profileId = user is Map<String, dynamic> ? user['profileId'] : null;
+        final user = response['user'] as Map<String, dynamic>?;
+        final userId = user?['id'];
 
-        if (mounted) {
-          if (profileId is num) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => DashboardScreen(profileId: profileId.toInt())),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-            );
-          }
+        if (mounted && userId != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          );
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Date de autentificare invalide.')),
+          );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Eroare la autentificare: $e')),
+            SnackBar(content: Text('Eroare: $e')),
           );
         }
       } finally {
@@ -61,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.bgMist,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -71,66 +69,91 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.shield_outlined, size: 80, color: Colors.blueGrey), // Un icon mai potrivit temei tale
+                  const SizedBox(height: 48),
+                  Icon(Icons.shield_outlined, size: 80, color: AppColors.deepSerenity),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'Safety Net',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.midnightText),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Bine ai revenit în spațiul tău sigur.',
+                  Text(
+                    'Spatiul tau sigur.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: AppColors.midnightText.withValues(alpha: 0.6)),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
                   
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.surfaceBlue, width: 2),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Te rog introdu email-ul';
-                      if (!value.contains('@')) return 'Introdu un email valid';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            labelStyle: TextStyle(color: AppColors.midnightText),
+                            prefixIcon: Icon(Icons.email_outlined, color: AppColors.deepSerenity),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.deepSerenity, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Introdu email-ul';
+                            if (!value.contains('@')) return 'Email invalid';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
 
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Parolă',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Parola',
+                            labelStyle: TextStyle(color: AppColors.midnightText),
+                            prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepSerenity),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.deepSerenity, width: 2),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: AppColors.deepSerenity),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Introdu parola';
+                            if (value.length < 6) return 'Minim 6 caractere';
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Te rog introdu parola';
-                      if (value.length < 6) return 'Parola trebuie să aibă minim 6 caractere';
-                      return null;
-                    },
                   ),
+                  
                   const SizedBox(height: 24),
 
                   ElevatedButton(
                     onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.midnightText,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Autentificare', style: TextStyle(fontSize: 18)),
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Autentificare', style: TextStyle(fontSize: 18, color: Colors.white)),
                   ),
                   const SizedBox(height: 16),
 
@@ -138,10 +161,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                       );
                     },
-                    child: const Text('Nu ai cont? Creează unul aici.'),
+                    child: Text(
+                      'Nu ai cont? Inregistreaza-te aici.',
+                      style: TextStyle(color: AppColors.deepSerenity),
+                    ),
                   ),
                 ],
               ),
