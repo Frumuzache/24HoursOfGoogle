@@ -1,0 +1,4 @@
+-- SQLite local setup (DBeaver):
+-- 1) Create/open database/assets/health_app.db
+-- 2) Run database/migrations/20260425_001_baseline.sql
+-- 3) Run database/seeds/001_demo_seed.sql
