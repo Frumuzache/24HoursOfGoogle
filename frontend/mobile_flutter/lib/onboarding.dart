@@ -70,11 +70,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             .toList(),
       );
 
+      final profileId = response['id'];
+      if (profileId is! num) {
+        throw Exception('Invalid profile id returned by backend');
+      }
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DashboardScreen(profileId: response['id'].toString()),
+            builder: (context) => DashboardScreen(profileId: profileId.toInt()),
           ),
         );
       }

@@ -5,7 +5,7 @@ import { db } from "../../core/db";
 export const vitalsRouter = Router();
 
 const createVitalSchema = z.object({
-  profileId: z.string().min(1),
+  profileId: z.coerce.number().int().positive(),
   source: z.enum(["watch", "phone", "manual"]).default("manual"),
   heartRate: z.number().int().min(0).max(260),
   hrv: z.number().int().min(0).max(1000).optional(),
@@ -49,31 +49,17 @@ vitalsRouter.post("/vitals", async (req, res) => {
 
   const profileRow = db
     .prepare("SELECT id FROM user_profiles WHERE id = ?")
-    .get(payload.profileId) as { id: string } | undefined;
+    .get(payload.profileId) as { id: number } | undefined;
 
   if (!profileRow) {
     return res.status(404).json({ error: "Profile not found" });
   }
 
-  // Generate UUID-like ID in TypeScript
-  const generateId = () => {
-    return [
-      Math.random().toString(16).slice(2, 10),
-      Math.random().toString(16).slice(2, 6),
-      Math.random().toString(16).slice(2, 6),
-      Math.random().toString(16).slice(2, 6),
-      Math.random().toString(16).slice(2, 14),
-    ].join('-');
-  };
-
-  const vitalId = generateId();
-
   const insertVitalResult = db.prepare(
     `INSERT INTO device_vitals (
-      id, profile_id, source, heart_rate, hrv, steps, stress_level, recorded_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      profile_id, source, heart_rate, hrv, steps, stress_level, recorded_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(
-    vitalId,
     payload.profileId,
     payload.source,
     payload.heartRate,
@@ -82,6 +68,8 @@ vitalsRouter.post("/vitals", async (req, res) => {
     payload.stressLevel ?? null,
     payload.recordedAt ?? new Date().toISOString(),
   );
+
+  const vitalId = Number(insertVitalResult.lastInsertRowid);
 
   const alertCandidate = buildAlertForVital({
     heartRate: payload.heartRate,

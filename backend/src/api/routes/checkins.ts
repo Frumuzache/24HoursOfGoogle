@@ -6,7 +6,7 @@ import { buildSafetySuggestions } from "../../services/recommendations";
 export const checkinsRouter = Router();
 
 const createCheckinSchema = z.object({
-  profileId: z.string().min(1),
+  profileId: z.coerce.number().int().positive(),
   moodScore: z.number().int().min(1).max(10),
   anxietyLevel: z.number().int().min(1).max(10),
   panicAttack: z.boolean().default(false),
@@ -29,7 +29,7 @@ checkinsRouter.post("/check-ins", async (req, res) => {
 
   const profileRow = db
     .prepare("SELECT id FROM user_profiles WHERE id = ?")
-    .get(payload.profileId) as { id: string } | undefined;
+    .get(payload.profileId) as { id: number } | undefined;
 
   if (!profileRow) {
     return res.status(404).json({ error: "Profile not found" });
@@ -40,28 +40,14 @@ checkinsRouter.post("/check-ins", async (req, res) => {
     hasTakenMedication: payload.hasTakenMedication,
   });
 
-  // Generate UUID-like ID in TypeScript
-  const generateId = () => {
-    return [
-      Math.random().toString(16).slice(2, 10),
-      Math.random().toString(16).slice(2, 6),
-      Math.random().toString(16).slice(2, 6),
-      Math.random().toString(16).slice(2, 6),
-      Math.random().toString(16).slice(2, 14),
-    ].join('-');
-  };
-
-  const checkinId = generateId();
-
   const insertResult = db.prepare(
     `INSERT INTO check_ins (
-      id, profile_id, mood_score, anxiety_level, panic_attack, heart_rate,
+      profile_id, mood_score, anxiety_level, panic_attack, heart_rate,
       has_taken_medication, notes, location_label, latitude, longitude,
       ai_priority, ai_actions
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
-    checkinId,
     payload.profileId,
     payload.moodScore,
     payload.anxietyLevel,
@@ -75,6 +61,8 @@ checkinsRouter.post("/check-ins", async (req, res) => {
     suggestions.priority,
     JSON.stringify(suggestions.actions),
   );
+
+  const checkinId = Number(insertResult.lastInsertRowid);
 
   const row = db
     .prepare(

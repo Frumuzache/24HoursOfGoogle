@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 class ApiClient {
-  static const String baseUrl = 'http://172.20.10.3:8080/api/v1';
+  // Folosim 127.0.0.1 (localhost) pentru că vei rula comanda "adb reverse"
+  static const String baseUrl = 'http://10.200.23.114:8080/api/v1';
 
   Future<Map<String, dynamic>> _postJson(
     String endpoint,
@@ -13,6 +14,9 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$endpoint');
     final client = HttpClient();
 
+    // Debug print ca să vezi în terminal exact unde pleacă datele
+    print('🚀 [API] Trimit $operation la: $uri');
+
     try {
       final request = await client.postUrl(uri).timeout(const Duration(seconds: 10));
       request.headers.contentType = ContentType.json;
@@ -21,19 +25,22 @@ class ApiClient {
       final response = await request.close().timeout(const Duration(seconds: 10));
       final body = await response.transform(utf8.decoder).join();
 
+      print('📥 [API] Răspuns server ($operation): ${response.statusCode}');
+
       if (response.statusCode != expectedStatus) {
-        throw Exception('Failed to $operation: ${response.statusCode}');
+        throw Exception('Status incorect: ${response.statusCode}. Body: $body');
       }
 
       return jsonDecode(body) as Map<String, dynamic>;
     } catch (e) {
-      throw Exception('Error trying to $operation: $e');
+      print('❌ [API] Eroare la $operation: $e');
+      throw Exception('Eroare conexiune: $e');
     } finally {
       client.close(force: true);
     }
   }
-  
-  // Create user profile
+
+  // Creare profil utilizator
   Future<Map<String, dynamic>> createProfile({
     required String displayName,
     List<String> disorders = const [],
@@ -56,10 +63,10 @@ class ApiClient {
       'create profile',
     );
   }
-  
-  // Send health check-in
+
+  // Trimitere Check-in (Mood/Heart Rate)
   Future<Map<String, dynamic>> sendCheckIn({
-    required String profileId,
+    required int profileId,
     required int heartRate,
     required int moodScore,
     int anxietyLevel = 5,

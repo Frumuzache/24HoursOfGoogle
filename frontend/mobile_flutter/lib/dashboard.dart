@@ -6,7 +6,7 @@ import './pulse_heart.dart';
 import './services/api_client.dart';
 
 class DashboardScreen extends StatelessWidget {
-  final String profileId;
+  final int profileId;
 
   const DashboardScreen({super.key, required this.profileId});
 
