@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'services/api_client.dart';
+import 'services/voice_service.dart';
+import 'widgets/voice_mic_button.dart';
 
 class ChatAiScreen extends StatefulWidget {
   final int profileId;
@@ -14,21 +16,34 @@ class ChatAiScreen extends StatefulWidget {
 class _ChatAiScreenState extends State<ChatAiScreen> {
   final TextEditingController _controller = TextEditingController();
   final ApiClient _apiClient = ApiClient();
+  final VoiceService _voiceService = VoiceService();
   final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   Map<String, dynamic>? _profileData;
+  VoiceInteractionState _voiceState = VoiceInteractionState.idle;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
     _addWelcomeMessage();
+    _voiceService.initialize();
+    _voiceService.state.addListener(_handleVoiceStateChanged);
   }
 
   @override
   void dispose() {
+    _voiceService.state.removeListener(_handleVoiceStateChanged);
+    _voiceService.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _handleVoiceStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      _voiceState = _voiceService.state.value;
+    });
   }
 
   void _addWelcomeMessage() {
@@ -56,10 +71,46 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
     return list.map((e) => e.toString()).join(", ");
   }
 
-  Future<void> _sendMessage() async {
-    if (_controller.text.isEmpty || _isLoading) return;
+  void _showMessage(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text)),
+    );
+  }
 
-    final userMessage = _controller.text;
+  Future<String> _fetchAiResponse(String userMessage) async {
+    // Placeholder callback shape expected by the voice pipeline:
+    // Future<String> fetchAiResponse(String textInput)
+    // You can replace this implementation with your existing LLM function.
+    final history = <Map<String, String>>[];
+    for (final msg in _messages) {
+      if (msg["isAi"] == true) {
+        history.add({"role": "assistant", "content": msg["text"]});
+      } else {
+        history.add({"role": "user", "content": msg["text"]});
+      }
+    }
+
+    return _apiClient.chatWithAi(
+      message: userMessage,
+      userName: _profileData?['display_name'] ?? '',
+      userConditions: _formatList(_profileData?['disorders'] ?? []),
+      heartRate: '72',
+      calmingMethods: _formatList(_profileData?['calming_strategies'] ?? []),
+      hobbies: _formatList(_profileData?['hobbies'] ?? []),
+      conversationHistory: history,
+    );
+  }
+
+  Future<void> _sendMessage() async {
+    if (_controller.text.trim().isEmpty || _isLoading) return;
+    if (_voiceState == VoiceInteractionState.listening ||
+        _voiceState == VoiceInteractionState.processing) {
+      _showMessage('Finish voice flow first, then send a text message.');
+      return;
+    }
+
+    final userMessage = _controller.text.trim();
     _controller.clear();
 
     setState(() {
@@ -68,25 +119,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
     });
 
     try {
-      // Build conversation history from messages
-      final history = <Map<String, String>>[];
-      for (final msg in _messages) {
-        if (msg["isAi"] == true) {
-          history.add({"role": "assistant", "content": msg["text"]});
-        } else {
-          history.add({"role": "user", "content": msg["text"]});
-        }
-      }
-
-      final aiResponse = await _apiClient.chatWithAi(
-        message: userMessage,
-        userName: _profileData?['display_name'] ?? '',
-        userConditions: _formatList(_profileData?['disorders'] ?? []),
-        heartRate: '72',
-        calmingMethods: _formatList(_profileData?['calming_strategies'] ?? []),
-        hobbies: _formatList(_profileData?['hobbies'] ?? []),
-        conversationHistory: history,
-      );
+      final aiResponse = await _fetchAiResponse(userMessage);
 
       if (mounted) {
         setState(() {
@@ -109,6 +142,37 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
         });
       }
     }
+  }
+
+  Future<void> _handleVoiceMicPressed() async {
+    await _voiceService.handleMicTap(
+      fetchAiResponse: _fetchAiResponse,
+      onUserTranscript: (transcript) {
+        if (!mounted) return;
+        setState(() {
+          _messages.add({"text": transcript, "isAi": false});
+        });
+      },
+      onAiResponse: (aiResponse) {
+        if (!mounted) return;
+        setState(() {
+          _messages.add({"text": aiResponse, "isAi": true});
+        });
+      },
+      onError: (errorMessage) {
+        if (!mounted) return;
+        _showMessage(errorMessage);
+
+        // Ensure the user still sees an assistant reply in the thread
+        // when the voice->AI pipeline fails.
+        setState(() {
+          _messages.add({
+            "text": "I'm here with you. I couldn't reach the AI just now. Please try again.",
+            "isAi": true,
+          });
+        });
+      },
+    );
   }
 
   @override
@@ -145,7 +209,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
               },
             ),
           ),
-          if (_isLoading)
+          if (_isLoading || _voiceState == VoiceInteractionState.processing)
             Padding(
               padding: EdgeInsets.all(16),
               child: Row(
@@ -200,7 +264,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
           Expanded(
             child: TextField(
               controller: _controller,
-              enabled: !_isLoading,
+              enabled: !_isLoading && _voiceState != VoiceInteractionState.listening,
               decoration: InputDecoration(
                 hintText: "Type how you feel...",
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
@@ -209,6 +273,11 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
               ),
               onSubmitted: (_) => _sendMessage(),
             ),
+          ),
+          SizedBox(width: 10),
+          VoiceMicButton(
+            state: _voiceState,
+            onPressed: _handleVoiceMicPressed,
           ),
           SizedBox(width: 10),
           CircleAvatar(

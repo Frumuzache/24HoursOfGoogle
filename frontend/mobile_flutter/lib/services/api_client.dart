@@ -1,14 +1,23 @@
+import 'dart:async';
 import 'dart:convert' as convert;
 import 'dart:io';
 
 class ApiClient {
-  // Use a LAN host by default for real devices. Override with --dart-define=API_HOST=... when needed.
-  static const String _apiHost = String.fromEnvironment('API_HOST', defaultValue: '10.200.23.114');
+  // Backend API host. Defaults to network IP. Override with --dart-define=API_HOST=<ip> for local dev.
+  static const String _apiHost = String.fromEnvironment('API_HOST', defaultValue: '10.200.22.248');
+  // AI service host. Defaults to network IP for physical devices.
+  // For localhost/emulator use: 127.0.0.1 or 10.0.2.2
+  static const String _aiHost = String.fromEnvironment('AI_HOST', defaultValue: '10.200.22.248');
+  // Optional full AI URL override (example: http://192.168.6.1:8000).
+  static const String _aiUrlOverride = String.fromEnvironment('AI_URL', defaultValue: '');
 
   // Backend API (running in Docker)
   static String get baseUrl => 'http://$_apiHost:8080/api/v1';
   // AI Service (running in Docker)
-  static String get aiUrl => 'http://$_apiHost:8000';
+  static String get aiUrl {
+    if (_aiUrlOverride.isNotEmpty) return _aiUrlOverride;
+    return 'http://$_aiHost:8000';
+  }
 
   // Conversation history for AI chat
   final List<Map<String, String>> _chatHistory = [];
@@ -19,25 +28,106 @@ class ApiClient {
     _chatHistory.clear();
   }
 
+  Future<void> _delay(Duration duration) async {
+    await Future<void>.delayed(duration);
+  }
+
+  bool _isRetryableStatus(int statusCode) {
+    return statusCode == 408 ||
+        statusCode == 429 ||
+        statusCode == 500 ||
+        statusCode == 502 ||
+        statusCode == 503 ||
+        statusCode == 504;
+  }
+
   Future<Map<String, dynamic>> _postJson(
     String uri,
     Map<String, dynamic> payload,
     int expectedStatus,
     String operation,
+    {
+    Duration timeout = const Duration(seconds: 60),
+    int maxAttempts = 1,
+    Duration retryDelay = const Duration(seconds: 2),
+  }
   ) async {
     print('🚀 [API] Trimit $operation la: $uri');
 
-    try {
-      final client = HttpClient();
-      final request = await client.postUrl(Uri.parse(uri)).timeout(const Duration(seconds: 60));
-      request.headers.contentType = ContentType.json;
-      request.write(convert.jsonEncode(payload));
+    Exception? lastError;
 
-      final response = await request.close().timeout(const Duration(seconds: 60));
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      final client = HttpClient();
+      try {
+        final request = await client.postUrl(Uri.parse(uri)).timeout(timeout);
+        request.headers.contentType = ContentType.json;
+        request.write(convert.jsonEncode(payload));
+
+        final response = await request.close().timeout(timeout);
+        final body = await response.transform(convert.utf8.decoder).join();
+
+        print('📥 [API] Răspuns server ($operation): ${response.statusCode}');
+
+        if (response.statusCode == expectedStatus) {
+          return convert.jsonDecode(body) as Map<String, dynamic>;
+        }
+
+        final statusError = Exception(
+          'Status incorect: ${response.statusCode}. Body: $body',
+        );
+        final canRetry =
+            attempt < maxAttempts && _isRetryableStatus(response.statusCode);
+        if (!canRetry) {
+          throw statusError;
+        }
+
+        print('⚠️ [API] Retry $attempt/$maxAttempts pentru $operation');
+        await _delay(retryDelay);
+      } on SocketException catch (e) {
+        lastError = Exception('Eroare conexiune: $e');
+        final canRetry = attempt < maxAttempts;
+        if (!canRetry) {
+          break;
+        }
+        print('⚠️ [API] Retry $attempt/$maxAttempts pentru $operation');
+        await _delay(retryDelay);
+      } on TimeoutException catch (e) {
+        lastError = Exception('Timeout la $operation: $e');
+        final canRetry = attempt < maxAttempts;
+        if (!canRetry) {
+          break;
+        }
+        print('⚠️ [API] Retry $attempt/$maxAttempts pentru $operation');
+        await _delay(retryDelay);
+      } catch (e) {
+        print('❌ [API] Eroare la $operation: $e');
+        throw Exception('Eroare conexiune: $e');
+      } finally {
+        client.close();
+      }
+    }
+
+    print('❌ [API] Eroare la $operation: $lastError');
+    throw lastError ?? Exception('Eroare conexiune necunoscută');
+  }
+
+  Future<Map<String, dynamic>> _getJson(
+    String uri,
+    int expectedStatus,
+    String operation,
+    {Duration timeout = const Duration(seconds: 60)}
+  ) async {
+    print('🚀 [API] Trimit $operation la: $uri');
+
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.parse(uri)).timeout(timeout);
+      request.headers.contentType = ContentType.json;
+
+      final response = await request.close().timeout(timeout);
       final body = await response.transform(convert.utf8.decoder).join();
 
       print('📥 [API] Răspuns server ($operation): ${response.statusCode}');
-      client.close();
 
       if (response.statusCode != expectedStatus) {
         throw Exception('Status incorect: ${response.statusCode}. Body: $body');
@@ -47,6 +137,8 @@ class ApiClient {
     } catch (e) {
       print('❌ [API] Eroare la $operation: $e');
       throw Exception('Eroare conexiune: $e');
+    } finally {
+      client.close();
     }
   }
 
@@ -155,15 +247,17 @@ class ApiClient {
       },
       200,
       'chat with AI',
+      timeout: const Duration(seconds: 180),
+      maxAttempts: 2,
+      retryDelay: const Duration(seconds: 2),
     );
     return response['output'] as String;
   }
 
   // Obține profil utilizator
   Future<Map<String, dynamic>> getProfile(int profileId) async {
-    return _postJson(
+    return _getJson(
       '$baseUrl/profiles/$profileId',
-      {},
       200,
       'get profile',
     );

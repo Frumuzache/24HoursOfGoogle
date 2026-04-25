@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .config import CONFIG
 from .service import InferenceService
 
 app = FastAPI(title="Google Hackkathon Local AI", version="0.1.0")
@@ -39,7 +41,7 @@ def health() -> dict[str, str]:
 
 
 @app.post("/infer", response_model=InferenceResponse)
-def infer(payload: InferenceRequest) -> InferenceResponse:
+async def infer(payload: InferenceRequest) -> InferenceResponse:
     try:
         variables = {
             "USER_NAME": payload.user_name,
@@ -49,13 +51,24 @@ def infer(payload: InferenceRequest) -> InferenceResponse:
             "HOBBIES": payload.hobbies,
             "NEARBY_SAFE_PLACES": payload.nearby_safe_places,
         }
-        output = service.run(
-            user_input=payload.input,
-            template_name=payload.template_name,
-            variables=variables,
-            conversation_history=payload.conversation_history,
+        output = await asyncio.wait_for(
+            asyncio.to_thread(
+                service.run,
+                user_input=payload.input,
+                template_name=payload.template_name,
+                variables=variables,
+                conversation_history=payload.conversation_history,
+            ),
+            timeout=CONFIG.inference_timeout_seconds,
         )
         return InferenceResponse(output=output)
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                "Inference timed out. Try a shorter message or reduce conversation history."
+            ),
+        ) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
