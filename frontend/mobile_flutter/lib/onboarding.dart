@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'dashboard.dart';
 import 'services/api_client.dart';
+import 'services/auth_session.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -73,6 +74,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final profileId = response['id'];
       if (profileId is! num) {
         throw Exception('Invalid profile id returned by backend');
+      }
+
+      final userId = await AuthSession.getUserId();
+      if (userId != null) {
+        await AuthSession.saveSession(
+          userId: userId,
+          email: '',
+          displayName: _displayNameController.text,
+          profileId: profileId.toInt(),
+        );
       }
 
       if (mounted) {

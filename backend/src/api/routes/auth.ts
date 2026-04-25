@@ -32,13 +32,24 @@ router.post('/register', async (req: Request, res: Response) => {
         const userResult = userStmt.run(email, hashedPassword, displayName);
         const userId = Number(userResult.lastInsertRowid);
 
+        // 4. Cream profilul utilizatorului
+        const profileStmt = db.prepare(
+            `INSERT INTO user_profiles (display_name, disorders, calming_strategies, favorite_foods, hobbies, medications)
+             VALUES (?, '[]', '[]', '[]', '[]', '[]')`
+        );
+        const profileResult = profileStmt.run(displayName);
+        const profileId = Number(profileResult.lastInsertRowid);
+
+        // 5. Actualizam userul cu profile_id
+        db.prepare('UPDATE users SET profile_id = ? WHERE id = ?').run(profileId, userId);
+
         res.status(201).json({
             message: "Cont creat cu succes!",
             user: {
                 id: userId,
                 email,
                 username: displayName,
-                profileId: null
+                profileId: profileId
             }
         });
 
@@ -61,8 +72,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
     try {
         // 1. Căutăm userul în DB
-        const user = db.prepare('SELECT id, email, password, username FROM users WHERE email = ?').get(email) as
-            | { id: number; email: string; password: string; username: string | null }
+        const user = db.prepare('SELECT id, email, password, username, profile_id FROM users WHERE email = ?').get(email) as
+            | { id: number; email: string; password: string; username: string | null; profile_id: number | null }
             | undefined;
 
         if (!user) {
@@ -80,7 +91,7 @@ router.post('/login', async (req: Request, res: Response) => {
             user: {
                 id: user.id,
                 email: user.email,
-                profileId: null,
+                profileId: user.profile_id,
                 displayName: user.username || "Utilizator"
             }
         });

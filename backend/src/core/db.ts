@@ -28,9 +28,13 @@ function ensureUsersSchema(): void {
 
   const columns = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
   const hasUsername = columns.some((column) => column.name === "username");
+  const hasProfileId = columns.some((column) => column.name === "profile_id");
 
   if (!hasUsername) {
     db.exec("ALTER TABLE users ADD COLUMN username TEXT;");
+  }
+  if (!hasProfileId) {
+    db.exec("ALTER TABLE users ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id);");
   }
 }
 
@@ -55,6 +59,7 @@ function createIntegerSchema(): void {
       email TEXT NOT NULL,
       password TEXT NOT NULL,
       username TEXT,
+      profile_id INTEGER REFERENCES user_profiles(id),
       created_at TEXT DEFAULT (datetime('now')) NOT NULL
     );
 

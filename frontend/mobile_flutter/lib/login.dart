@@ -4,6 +4,7 @@ import 'register.dart';
 import 'dashboard.dart';
 import 'constants.dart';
 import 'services/api_client.dart';
+import 'services/auth_session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,8 +32,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
         final user = response['user'] as Map<String, dynamic>?;
         final userId = user?['id'];
+        final email = user?['email'] as String? ?? '';
+        final displayName = user?['displayName'] as String? ?? '';
+        final profileId = user?['profileId'] as int?;
 
         if (mounted && userId != null) {
+          await AuthSession.saveSession(
+            userId: userId,
+            email: email,
+            displayName: displayName,
+            profileId: profileId,
+          );
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const OnboardingScreen()),

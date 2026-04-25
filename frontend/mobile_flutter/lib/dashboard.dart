@@ -1,13 +1,13 @@
-//provides immediate reassurance and real-time data.
-
 import 'package:flutter/material.dart';
 import './constants.dart';
 import './pulse_heart.dart';
 import './services/api_client.dart';
+import './services/auth_session.dart';
 import 'chat_ai.dart';
 import 'emergency_contacts.dart'; 
-import 'vitals_service.dart'; // Asigură-te că aceasta este calea corectă
-import 'watch_ui.dart'; // Importă și ecranul de ceas pe care îl creăm
+import 'vitals_service.dart';
+import 'watch_ui.dart';
+import 'login.dart';
 
 class DashboardScreen extends StatelessWidget {
   final int profileId;
@@ -68,6 +68,19 @@ class DashboardScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: Icon(Icons.logout, color: AppColors.midnightText),
+            onPressed: () async {
+              await AuthSession.logout();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
           IconButton(
             icon: Icon(Icons.contact_phone, color: AppColors.midnightText),
             onPressed: () {

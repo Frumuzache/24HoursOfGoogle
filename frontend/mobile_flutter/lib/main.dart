@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
 import 'login.dart';
+import 'onboarding.dart';
+import 'dashboard.dart';
+import 'services/auth_session.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  final isLoggedIn = await AuthSession.isLoggedIn();
+  final hasProfile = await AuthSession.hasProfile();
+  
+  runApp(MyApp(startScreen: isLoggedIn 
+    ? (hasProfile ? const DashboardScreen(profileId: 0) : const OnboardingScreen()) 
+    : const LoginScreen()));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Widget startScreen;
+  
+  const MyApp({super.key, required this.startScreen});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Safety Net',
-      // Schimbăm doar aici ca să pornească direct cu Login-ul
-      home: const LoginScreen(), 
+      home: startScreen,
     );
   }
 }
