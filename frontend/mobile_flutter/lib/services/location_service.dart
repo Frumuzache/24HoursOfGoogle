@@ -19,7 +19,10 @@ class NearbyPlace {
 }
 
 class LocationService {
-  static const String _placesApiKey = 'AIzaSyDs2JH0gs6o9QbtCOSXkVREQc5qftCAlz8';
+  static const String _placesApiKey = String.fromEnvironment(
+    'GOOGLE_PLACES_API_KEY',
+    defaultValue: '',
+  );
   
   static const Map<String, List<String>> placeKeywords = {
     'park': ['park', 'parks', 'nature', 'outdoor', 'walking', 'verde'],
@@ -124,6 +127,11 @@ class LocationService {
   Future<List<NearbyPlace>> searchNearbyPlaces(String placeType, {int maxResults = 3}) async {
     final position = await getCurrentLocation();
     if (position == null) return [];
+
+    if (_placesApiKey.isEmpty) {
+      print('GOOGLE_PLACES_API_KEY is missing from --dart-define');
+      return [];
+    }
 
     final googlePlaceType = placeTypes[placeType] ?? placeType;
     final url = Uri.parse(
