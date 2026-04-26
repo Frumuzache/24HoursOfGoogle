@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'constants.dart';
 import 'services/api_client.dart';
 import 'services/voice_service.dart';
+import 'services/location_service.dart';
 import 'widgets/voice_mic_button.dart';
 
 class ChatAiScreen extends StatefulWidget {
@@ -17,9 +19,12 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
   final TextEditingController _controller = TextEditingController();
   final ApiClient _apiClient = ApiClient();
   final VoiceService _voiceService = VoiceService();
+  final LocationService _locationService = LocationService();
   final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   Map<String, dynamic>? _profileData;
+  String _lastNearbySafePlaces = '';
+  String _lastRequestedPlaceType = 'park';
   VoiceInteractionState _voiceState = VoiceInteractionState.idle;
 
   @override
@@ -78,10 +83,62 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
     );
   }
 
+  bool _isLocationFollowUpIntent(String message) {
+    final lower = message.toLowerCase();
+    const followUpPatterns = [
+      'take me',
+      'go there',
+      'directions',
+      'where is it',
+      'i want to go',
+      'closest',
+      'nearest',
+      'there',
+    ];
+    return followUpPatterns.any(lower.contains);
+  }
+
+  Future<String> _resolveNearbySafePlace(String userMessage) async {
+    final detectedPlaceType = _locationService.detectPlaceType(userMessage);
+    final followUpIntent = _isLocationFollowUpIntent(userMessage);
+
+    String? targetType = detectedPlaceType;
+    if (targetType != null) {
+      _lastRequestedPlaceType = targetType;
+    } else if (followUpIntent) {
+      targetType = _lastRequestedPlaceType;
+    }
+
+    if (targetType == null) {
+      return _lastNearbySafePlaces;
+    }
+
+    final place = await _locationService.getClosestPlace(targetType);
+    if (place == null) {
+      final searchLink = await _locationService.findNearbyPlace(targetType) ??
+          _locationService.generateGoogleMapsSearchLinkWithoutLocation(
+            placeType: targetType,
+          );
+      _lastNearbySafePlaces =
+          'Nearby ${targetType[0].toUpperCase()}${targetType.substring(1)}|Near your location|nearby|$searchLink';
+      return _lastNearbySafePlaces;
+    }
+
+    final position = await _locationService.getCurrentLocation();
+    final directionsUrl = _locationService.generateGoogleMapsDirectionsLink(
+      destLatitude: place.latitude,
+      destLongitude: place.longitude,
+      originLatitude: position?.latitude,
+      originLongitude: position?.longitude,
+    );
+    final distance = _locationService.formatDistance(place.distance);
+    _lastNearbySafePlaces = '${place.name}|${place.address}|$distance|$directionsUrl';
+    return _lastNearbySafePlaces;
+  }
+
   Future<String> _fetchAiResponse(String userMessage) async {
-    // Placeholder callback shape expected by the voice pipeline:
-    // Future<String> fetchAiResponse(String textInput)
-    // You can replace this implementation with your existing LLM function.
+    final nearbySafePlaces = await _resolveNearbySafePlace(userMessage);
+    
     final history = <Map<String, String>>[];
     for (final msg in _messages) {
       if (msg["isAi"] == true) {
@@ -98,6 +155,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
       heartRate: '72',
       calmingMethods: _formatList(_profileData?['calming_strategies'] ?? []),
       hobbies: _formatList(_profileData?['hobbies'] ?? []),
+      nearbySafePlaces: nearbySafePlaces,
       conversationHistory: history,
     );
   }
@@ -190,6 +248,8 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
             onPressed: () {
               setState(() {
                 _messages.clear();
+                _lastNearbySafePlaces = '';
+                _lastRequestedPlaceType = 'park';
                 _addWelcomeMessage();
               });
             },
@@ -232,6 +292,52 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
   }
 
   Widget _buildChatBubble(String text, bool isAi) {
+    final urlPattern = RegExp(r'https?://[^\s]+');
+    final matches = urlPattern.allMatches(text);
+    
+    if (matches.isEmpty || !isAi) {
+      return Align(
+        alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
+        child: Container(
+          margin: EdgeInsets.symmetric(vertical: 8),
+          padding: EdgeInsets.all(16),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+          decoration: BoxDecoration(
+            color: isAi ? AppColors.surfaceBlue : AppColors.deepSerenity,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomLeft: isAi ? Radius.zero : Radius.circular(20),
+              bottomRight: isAi ? Radius.circular(20) : Radius.zero,
+            ),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(color: isAi ? AppColors.midnightText : Colors.white, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start)));
+      }
+      spans.add(TextSpan(
+        text: match.group(0)!,
+        style: TextStyle(
+          color: Colors.blue,
+          decoration: TextDecoration.underline,
+        ),
+      ));
+      lastEnd = match.end;
+    }
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd)));
+    }
+
     return Align(
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
@@ -247,9 +353,25 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
             bottomRight: isAi ? Radius.circular(20) : Radius.zero,
           ),
         ),
-        child: Text(
-          text,
-          style: TextStyle(color: isAi ? AppColors.midnightText : Colors.white, fontSize: 16),
+        child: GestureDetector(
+          onTap: () async {
+            final url = urlPattern.firstMatch(text)?.group(0);
+            if (url != null) {
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+          },
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: isAi ? AppColors.midnightText : Colors.white,
+                fontSize: 16,
+              ),
+              children: spans,
+            ),
+          ),
         ),
       ),
     );

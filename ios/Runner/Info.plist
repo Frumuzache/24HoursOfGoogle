@@ -28,6 +28,10 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is needed so you can talk with the AI assistant.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location access is needed to provide safety features and emergency services.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location access is needed to provide safety features and emergency services even when the app is in the background.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Speech recognition is needed to convert your voice into text for the AI assistant.</string>
 	<key>UIApplicationSceneManifest</key>

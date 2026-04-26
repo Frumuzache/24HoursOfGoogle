@@ -181,12 +181,9 @@ class VoiceService {
       return;
     }
 
-    // Lock this session immediately so concurrent callbacks
-    // (finalResult + notListening) cannot trigger duplicate AI calls.
     _hasProcessedCurrentSession = true;
 
     if (waitForLateResult && _latestTranscript.trim().isEmpty) {
-      // STT engines sometimes emit notListening before the final text callback.
       await Future<void>.delayed(const Duration(milliseconds: 250));
     }
 
