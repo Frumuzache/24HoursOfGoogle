@@ -41,6 +41,7 @@ dependencies:
 
   mobile_flutter:
     path: frontend/mobile_flutter
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

@@ -276,5 +276,6 @@ class VoiceService {
     }
     await _flutterTts.stop();
     state.dispose();
+    _isInitialized = false;
   }
 }
