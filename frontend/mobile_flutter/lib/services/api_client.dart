@@ -262,4 +262,65 @@ class ApiClient {
       'get profile',
     );
   }
+
+  Future<Map<String, dynamic>> updateEmergencyContact({
+    required int profileId,
+    required String name,
+    required String phone,
+  }) async {
+    return _postJson(
+      '$baseUrl/profiles/$profileId/emergency-contact',
+      {
+        'name': name,
+        'phone': phone,
+      },
+      200,
+      'update emergency contact',
+    );
+  }
+
+  Future<Map<String, dynamic>> triggerSos({
+    required int profileId,
+    int? heartRate,
+    String? locationLabel,
+    double? latitude,
+    double? longitude,
+    String? note,
+  }) async {
+    final payload = {
+      'profileId': profileId,
+      if (heartRate != null) 'heartRate': heartRate,
+      if (locationLabel != null && locationLabel.isNotEmpty) 'locationLabel': locationLabel,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (note != null && note.isNotEmpty) 'note': note,
+    };
+
+    final candidateUrls = <String>[
+      '$baseUrl/sos',
+      '$baseUrl/checkins/sos',
+      '$baseUrl/check-ins/sos',
+    ];
+
+    Exception? last404Error;
+    for (final url in candidateUrls) {
+      try {
+        return _postJson(
+          url,
+          payload,
+          201,
+          'trigger sos',
+        );
+      } catch (e) {
+        final message = e.toString();
+        if (message.contains('Status incorect: 404') || message.contains('Cannot POST')) {
+          last404Error = e is Exception ? e : Exception(message);
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    throw last404Error ?? Exception('No SOS endpoint responded with 201');
+  }
 }

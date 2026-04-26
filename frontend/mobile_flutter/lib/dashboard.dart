@@ -3,9 +3,9 @@ import './constants.dart';
 import './pulse_heart.dart';
 import './services/api_client.dart';
 import './services/auth_session.dart';
+import './services/location_service.dart';
 import 'chat_ai.dart';
 import 'emergency_contacts.dart'; 
-import 'vitals_service.dart';
 import 'watch_ui.dart';
 import 'login.dart';
 
@@ -15,49 +15,95 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key, required this.profileId});
 
   // Function to handle the SOS trigger
-  void _triggerSOS(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: AppColors.softAwareness, size: 60),
-            const SizedBox(height: 20),
-            const Text("SOS Triggered", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            const Text(
-              "Notifying your emergency contact and preparing AI grounding support...",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatAiScreen(profileId: profileId), 
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.deepSerenity,
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              child: const Text("Start AI Grounding", style: TextStyle(color: Colors.white, fontSize: 18)),
-            )
-          ],
+  Future<void> _triggerSOS(BuildContext context) async {
+    try {
+      final position = await LocationService().getCurrentLocation();
+      final response = await ApiClient().triggerSos(
+        profileId: profileId,
+        heartRate: 72,
+        locationLabel: position == null ? 'Unknown location' : 'Current location',
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      final sos = response['sos'] as Map<String, dynamic>?;
+      final emergencyContact = sos?['emergency_contact'] as Map<String, dynamic>?;
+      final alert = sos?['alert'] as Map<String, dynamic>?;
+      final contactName = emergencyContact?['name'] as String?;
+      final contactPhone = emergencyContact?['phone'] as String?;
+      final message = alert?['message'] as String? ?? 'SOS triggered successfully.';
+
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
-      ),
-    );
+        builder: (sheetContext) => Container(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.softAwareness, size: 60),
+              const SizedBox(height: 20),
+              const Text("SOS Triggered", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              if (contactName != null || contactPhone != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  contactName == null ? 'Emergency contact configured.' : 'Emergency contact: $contactName',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.midnightText, fontWeight: FontWeight.w600),
+                ),
+                if (contactPhone != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    contactPhone,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.midnightText.withValues(alpha: 0.7)),
+                  ),
+                ],
+              ],
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatAiScreen(profileId: profileId),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.deepSerenity,
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                child: const Text("Start AI Grounding", style: TextStyle(color: Colors.white, fontSize: 18)),
+              )
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to trigger SOS: $e')),
+      );
+    }
   }
 
   @override
@@ -86,7 +132,7 @@ class DashboardScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ContactManagerScreen()),
+                MaterialPageRoute(builder: (context) => ContactManagerScreen(profileId: profileId)),
               );
             },
           ),
@@ -136,7 +182,7 @@ class DashboardScreen extends StatelessWidget {
                 icon: const Icon(Icons.watch, color: Colors.white),
                 label: const Text("Open Watch Interface", style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.midnightText.withOpacity(0.6),
+                  backgroundColor: AppColors.midnightText.withValues(alpha: 0.6),
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),

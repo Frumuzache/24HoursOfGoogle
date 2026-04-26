@@ -8,10 +8,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   final isLoggedIn = await AuthSession.isLoggedIn();
-  final hasProfile = await AuthSession.hasProfile();
+  final profileId = await AuthSession.getProfileId();
+  final hasProfile = profileId != null && profileId > 0;
   
   runApp(MyApp(startScreen: isLoggedIn 
-    ? (hasProfile ? const DashboardScreen(profileId: 0) : const OnboardingScreen()) 
+    ? (hasProfile ? DashboardScreen(profileId: profileId) : const OnboardingScreen()) 
     : const LoginScreen()));
 }
 

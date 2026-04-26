@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../../core/db";
 import { buildSafetySuggestions } from "../../services/recommendations";
+import { sendEmergencySms } from "../../services/sms";
 
 export const checkinsRouter = Router();
 
@@ -16,6 +17,15 @@ const createCheckinSchema = z.object({
   locationLabel: z.string().max(200).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+});
+
+const createSosSchema = z.object({
+  profileId: z.coerce.number().int().positive(),
+  heartRate: z.number().int().min(0).max(260).optional(),
+  locationLabel: z.string().max(200).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  note: z.string().max(1000).optional(),
 });
 
 checkinsRouter.post("/check-ins", async (req, res) => {
@@ -116,4 +126,131 @@ checkinsRouter.get("/check-ins/:profileId", async (req, res) => {
   }));
 
   return res.status(200).json({ items });
+});
+
+checkinsRouter.post("/sos", async (req, res) => {
+  const payloadResult = createSosSchema.safeParse(req.body);
+  if (!payloadResult.success) {
+    return res.status(400).json({ error: "Invalid SOS payload", details: payloadResult.error.flatten() });
+  }
+
+  const payload = payloadResult.data;
+
+  const profile = db
+    .prepare(
+      `SELECT id, display_name, emergency_contact_name, emergency_contact_phone
+       FROM user_profiles
+       WHERE id = ?`,
+    )
+    .get(payload.profileId) as
+    | {
+        id: number;
+        display_name: string | null;
+        emergency_contact_name: string | null;
+        emergency_contact_phone: string | null;
+      }
+    | undefined;
+
+  if (!profile) {
+    return res.status(404).json({ error: "Profile not found" });
+  }
+
+  const suggestions = buildSafetySuggestions({
+    intensity: 10,
+    hasTakenMedication: false,
+  });
+
+  const checkinResult = db
+    .prepare(
+      `INSERT INTO check_ins (
+        profile_id, mood_score, anxiety_level, panic_attack, heart_rate,
+        has_taken_medication, notes, location_label, latitude, longitude,
+        ai_priority, ai_actions
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      payload.profileId,
+      2,
+      10,
+      1,
+      payload.heartRate ?? null,
+      0,
+      payload.note ?? "SOS triggered from app",
+      payload.locationLabel ?? null,
+      payload.latitude ?? null,
+      payload.longitude ?? null,
+      suggestions.priority,
+      JSON.stringify(suggestions.actions),
+    );
+
+  const checkinId = Number(checkinResult.lastInsertRowid);
+
+  const alertMessage = profile.emergency_contact_name
+    ? `SOS triggered. Please contact ${profile.emergency_contact_name} and move to a safer location now.`
+    : "SOS triggered. No emergency contact configured. Move to a safer location and call local emergency support now.";
+
+  const alertResult = db
+    .prepare(
+      `INSERT INTO alerts (
+        profile_id, vital_id, alert_type, severity, message, acknowledged
+      ) VALUES (?, NULL, 'check_in_prompt', 'high', ?, 0)`,
+    )
+    .run(payload.profileId, alertMessage);
+
+  const alertId = Number(alertResult.lastInsertRowid);
+
+  const alertRow = db
+    .prepare(
+      `SELECT id, profile_id, vital_id, alert_type, severity, message, acknowledged, created_at
+       FROM alerts
+       WHERE id = ?`,
+    )
+    .get(alertId) as Record<string, unknown>;
+
+  let smsNotification:
+    | {
+        status: "sent" | "skipped" | "unavailable" | "failed";
+        provider: "twilio" | "none";
+        error?: string;
+      }
+    | undefined;
+
+  if (profile.emergency_contact_phone) {
+    console.log("[SOS] Sending SMS to:", profile.emergency_contact_phone);
+    try {
+      smsNotification = await sendEmergencySms({
+        phone: profile.emergency_contact_phone,
+        message: `${profile.display_name ?? "A user"} triggered an SOS. ${alertMessage}`,
+      });
+      console.log("[SOS] SMS result:", smsNotification);
+    } catch (error) {
+      smsNotification = {
+        status: "failed",
+        provider: "twilio",
+        error: error instanceof Error ? error.message : "Unknown SMS error",
+      };
+    }
+  } else {
+    smsNotification = {
+      status: "skipped",
+      provider: "none",
+    };
+  }
+
+  return res.status(201).json({
+    sos: {
+      profile_id: payload.profileId,
+      check_in_id: checkinId,
+      alert: {
+        ...alertRow,
+        acknowledged: Boolean(alertRow.acknowledged),
+      },
+      emergency_contact: {
+        name: profile.emergency_contact_name,
+        phone: profile.emergency_contact_phone,
+      },
+      notification: smsNotification,
+      ai_actions: suggestions.actions,
+    },
+  });
 });

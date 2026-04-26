@@ -10,9 +10,10 @@ This folder contains server-side APIs and background jobs.
 
 ## Quick Start
 
-1. Copy `.env.example` to `.env` and set `SQLITE_DB_PATH`.
-2. Install dependencies: `npm install`
-3. Start dev server: `npm run dev`
+1. Copy `backend/.env.example` to `backend/.env` and set `SQLITE_DB_PATH`.
+2. If you want SOS SMS delivery, also set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER` in `backend/.env`.
+3. Install dependencies: `npm install`
+4. Start dev server: `npm run dev`
 
 Default SQLite path in `.env.example` points to `../database/assets/health_app.db`.
 
@@ -28,6 +29,16 @@ Default API base URL: `http://localhost:8080/api/v1`
 - `POST /vitals` ingest watch/phone vitals and auto-create alerts
 - `GET /alerts/:profileId` list recent alerts for a user by integer profile id
 - `POST /alerts/:alertId/ack` mark alert as acknowledged by integer alert id
+
+## SOS SMS Delivery
+
+The SOS endpoint sends an SMS to the saved emergency contact only when the backend process has the Twilio variables configured:
+
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_FROM_NUMBER`
+
+Without those variables, the backend still records the SOS alert but skips SMS delivery.
 
 ## Structure
 - `src/api/routes/` HTTP route handlers and versioned endpoints

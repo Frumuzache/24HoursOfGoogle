@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'onboarding.dart';
 import 'register.dart';
-import 'dashboard.dart';
 import 'constants.dart';
 import 'services/api_client.dart';
 import 'services/auth_session.dart';
